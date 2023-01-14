@@ -1,0 +1,45 @@
+---
+stages:
+  - build
+
+.build_image:
+  stage: build
+  image: docker:20.10.18-alpine3.16
+  services:
+    - docker:20.10.18-dind-alpine3.16
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+  script:
+    - echo "$DOCKERHUB_PASSWORD" | docker login -u $DOCKERHUB_USER --password-stdin
+    - "docker build .
+      --file Dockerfile.$PKG_MGR
+      --tag $DOCKERHUB_ORG/$DOCKERHUB_IMAGE:$DISTRO-$DISTRO_VERSION
+      --build-arg DISTRO=$DISTRO
+      --build-arg VERSION=$DISTRO_VERSION
+      --build-arg SALT_VERSION=$SALT_VERSION"
+    - docker push $DOCKERHUB_ORG/$DOCKERHUB_IMAGE:$DISTRO-$DISTRO_VERSION
+    - docker rmi $DOCKERHUB_ORG/$DOCKERHUB_IMAGE:$DISTRO-$DISTRO_VERSION
+
+debian-10-3005:
+  extends: .build_image
+  variables:
+    SALT_VERSION: "3005.1"
+    DISTRO: debian
+    DISTRO_VERSION: 10
+    PKG_MGR: apt
+
+debian-11-3005:
+  extends: .build_image
+  variables:
+    SALT_VERSION: "3005.1"
+    DISTRO: debian
+    DISTRO_VERSION: 11
+    PKG_MGR: apt
+
+ubuntu-2204-3005:
+  extends: .build_image
+  variables:
+    SALT_VERSION: "3005.1"
+    DISTRO: ubuntu
+    DISTRO_VERSION: "22.04"
+    PKG_MGR: apt
